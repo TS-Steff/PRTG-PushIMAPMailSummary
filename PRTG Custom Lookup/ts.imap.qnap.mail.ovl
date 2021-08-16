@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValueLookup id="ts.imap.qnap.mail" desiredValue="1" undefinedState="Error">
+  <Lookups>
+    <SingleInt state="Ok" value="0">OK</SingleInt>
+    <SingleInt state="Warning" value="1">Warn mail</SingleInt>
+    <SingleInt state="Error" value="2">Error mail</SingleInt>
+  </Lookups>
+</ValueLookup>
