@@ -5,7 +5,9 @@
 ├─────────────────────────────────────────────────────────────────────────────────────────────┤ 
 │   DATE        : 2021.05.10                                                                  |
 │   AUTHOR      : TS-Management GmbH, Stefan Müller                                           | 
-│   DESCRIPTION : Push num files in IMAP Folder by subject with error and info                |
+│   DESCRIPTION : Push num files in IMAP Folder by subject with error, warning and info       |
+|   HISTORY     : 2021.08.16 - Added Last message subject error, warn or info                 |
+|                            - imap disconnect added                                          |
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
 #>
 
@@ -23,7 +25,10 @@ $DAYSToSummarize = 3
 $PRTG_PROBE = ""
 $PRTG_PORT = ""
 $PRTG_KEY = ""
+
+
 $PRTG_JSON = ""
+
 
 if ($PSVersionTable.PSVersion.Major -lt 5){write-host "ERROR: Minimum Powershell Version 5.0 is required!" -F Yellow; return}  
 
@@ -41,7 +46,6 @@ function sendPush(){
        -Body $PRTG_JSON `
        -usebasicparsing
 
- 
     if ($answer.statuscode -ne 200) {
        write-warning "Request to PRTG failed"
        write-host "answer: " $answer.statuscode
@@ -66,19 +70,12 @@ function sendPush(){
 try{
     # IMAP Client
     $imap = New-Object MailKit.Net.Imap.ImapClient
+
     # verbindung
     $imap.Connect($IMAP_HOST,$IMAP_PORT,[MailKit.Security.SecureSocketOptions]::Auto)
+
     # Authentifizierung
     $imap.Authenticate($IMAP_USERNAME,$IMAP_PASSWORD)
-    # Posteingang im ReadWrite Modus öffnen
-    #[void]$imap.Inbox.Open([MailKit.FolderAccess]::ReadWrite)
-
-    #$personal = $imap.getFolder($imap.PersonalNamespaces[0])
-    #foreach($folder in $personal.GetSubfolders($false)){
-    #    write-host $folder.Name
-    #}
-    #write-host "------" -ForegroundColor Green
-
 
     # Ordner öffnen
     $inbox = $imap.GetFolder($IMAP_FOLDER)
@@ -109,8 +106,30 @@ try{
     $numInfo = $msgInfo_ids.Count 
     #write-host $msgInfo_ids.Count " Infonachrichten in den letzten $DAYSToSummarize Tagen "
 
+    # Nachrichten mit [Error] im Betreff der letzten X Tage
+    $msgWarn_ids = $inbox.Search([MailKit.Search.SearchQuery]::SubjectContains("[Warning]").And([MailKit.Search.SearchQuery]::DeliveredAfter($dateFrom)))
+    $numWarn = $msgWarn_ids.Count    
+
+    #####
+    # Betreff der letzten Nachricht auslesen
+    #####
+    $msgLastReceived = $inbox.GetMessage($msgLastXDays_ids.Count -1)
+
+    if($msgLastReceived.Subject -Match "Error"){
+        $lastMSGState = 2
+    }elseif($msgLastReceived.Subject -Match "Warning"){ 
+        $lastMSGState = 1 
+    }elseif($msgLastReceived.Subject -Match "Info"){ 
+        $lastMSGState = 0
+    }else{
+        $lastMSGState = "unknown"
+    }
+
+
+    $imap.Disconnect($true)
 
 # Create PRTG_JSON
+
 $PRTG_JSON = @"
 {
     "prtg":{
@@ -139,9 +158,27 @@ $PRTG_JSON = @"
 
             },
             {
+                "channel":"Warn Mails",
+                "unit":"Custom",
+                "value":$numWarn,
+                "showChart":1,
+                "showTable":1,
+                "LimitMaxWarning":1,
+                "LimitWarningMsg": "$numWarn warnings in the last $DAYSToSummarize Days",
+                "LimitMode":1
+            },
+            {
                 "channel":"Information Mails",
                 "unit":"Custom",
                 "value":$numInfo,
+                "showChart":1,
+                "showTable":1
+            },
+            {
+                "channel":"Last message state",
+                "unit":"Custom",
+                "value":"$lastMSGState",
+                "valueLookup":"ts.imap.qnap.mail",
                 "showChart":1,
                 "showTable":1
             }
@@ -150,14 +187,11 @@ $PRTG_JSON = @"
 }
 "@
 
-
-
-
-sendPush
+    #write-host $PRTG_JSON
+    sendPush
 
 }catch{
     throw $_
-
 }finally{
     # Disconnect
     if ($imap.Connected){
