@@ -8,6 +8,7 @@
 │   DESCRIPTION : Push num files in IMAP Folder by subject with error, warning and info       |
 |   HISTORY     : 2021.08.16 - Added Last message subject error, warn or info                 |
 |                            - imap disconnect added                                          |
+|                 2021.08.18 - Added Variable to summarize only unread messages               |
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
 #>
 
@@ -21,6 +22,7 @@ $IMAP_USERNAME = ''
 $IMAP_PASSWORD = ''
 $IMAP_FOLDER = 'INBOX/Customer'
 $DAYSToSummarize = 3
+$UNSEEN_MAILS_ONLY = 1
 
 $PRTG_PROBE = ""
 $PRTG_PORT = ""
@@ -97,18 +99,31 @@ try{
     #write-host $msgUnreadXDays_ids.Count " ungelesene Nachrichten in den letzten $DAYSToSummarize Tagen"
 
     # Nachrichten mit [Error] im Betreff der letzten X Tage
-    $msgError_ids = $inbox.Search([MailKit.Search.SearchQuery]::SubjectContains("[Error]").And([MailKit.Search.SearchQuery]::DeliveredAfter($dateFrom)))
+    if($UNSEEN_MAILS_ONLY = 1){
+        $msgError_ids = $inbox.Search([MailKit.Search.SearchQuery]::SubjectContains("[Error]").And([MailKit.Search.SearchQuery]::DeliveredAfter($dateFrom)).And([MailKit.Search.SearchQuery]::NotSeen))
+    }else{
+        $msgError_ids = $inbox.Search([MailKit.Search.SearchQuery]::SubjectContains("[Error]").And([MailKit.Search.SearchQuery]::DeliveredAfter($dateFrom)))
+    }
     $numErr = $msgError_ids.Count 
     #write-host $msgError_ids.Count " Fehlermeldungen in den letzten $DAYSToSummarize Tagen "
 
     # Nachrichten mit [Info] im Betreff der letzten X Tage
-    $msgInfo_ids = $inbox.Search([MailKit.Search.SearchQuery]::SubjectContains("[Info]").And([MailKit.Search.SearchQuery]::DeliveredAfter($dateFrom)))
+    if($UNSEEN_MAILS_ONLY = 1){
+        $msgInfo_ids = $inbox.Search([MailKit.Search.SearchQuery]::SubjectContains("[Info]").And([MailKit.Search.SearchQuery]::DeliveredAfter($dateFrom)).And([MailKit.Search.SearchQuery]::NotSeen))
+    }else{
+        $msgInfo_ids = $inbox.Search([MailKit.Search.SearchQuery]::SubjectContains("[Info]").And([MailKit.Search.SearchQuery]::DeliveredAfter($dateFrom)))
+    }
     $numInfo = $msgInfo_ids.Count 
+
     #write-host $msgInfo_ids.Count " Infonachrichten in den letzten $DAYSToSummarize Tagen "
 
     # Nachrichten mit [Error] im Betreff der letzten X Tage
-    $msgWarn_ids = $inbox.Search([MailKit.Search.SearchQuery]::SubjectContains("[Warning]").And([MailKit.Search.SearchQuery]::DeliveredAfter($dateFrom)))
-    $numWarn = $msgWarn_ids.Count    
+    if($UNSEEN_MAILS_ONLY = 1){
+        $msgWarn_ids = $inbox.Search([MailKit.Search.SearchQuery]::SubjectContains("[Warning]").And([MailKit.Search.SearchQuery]::DeliveredAfter($dateFrom)).And([MailKit.Search.SearchQuery]::NotSeen))
+    }else{
+        $msgWarn_ids = $inbox.Search([MailKit.Search.SearchQuery]::SubjectContains("[Warning]").And([MailKit.Search.SearchQuery]::DeliveredAfter($dateFrom)))
+    }
+    $numWarn = $msgWarn_ids.Count   
 
     #####
     # Betreff der letzten Nachricht auslesen

@@ -2,3 +2,4 @@
 2021.08.16 - Added Last message subject error, warn or info check
            - Added IMAP disconnect
            - PRTG Custom Lookup created
+2021.08.18 - Added Variable to summarize only unread messages
