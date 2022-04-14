@@ -24,7 +24,7 @@ $IMAP_FOLDER = 'INBOX/Customer'
 $DAYSToSummarize = 3
 $UNSEEN_MAILS_ONLY = 1
 
-$PRTG_PROBE = ""
+$PRTG_PROBE = "" #include https or http
 $PRTG_PORT = ""
 $PRTG_KEY = ""
 
@@ -43,7 +43,7 @@ function sendPush(){
     #$Answer = Invoke-WebRequest -Uri $NETXNUA -Method Post -Body $RequestBody -ContentType $ContentType -UseBasicParsing
     $answer = Invoke-WebRequest `
        -method POST `
-       -URI ("http://" + $PRTG_PROBE + ":" + $PRTG_PORT + "/" + $PRTG_KEY) `
+       -URI ($PRTG_PROBE + ":" + $PRTG_PORT + "/" + $PRTG_KEY) `
        -ContentType "application/json" `
        -Body $PRTG_JSON `
        -usebasicparsing
